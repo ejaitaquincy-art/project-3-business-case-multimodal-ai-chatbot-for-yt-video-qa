@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 import re
-from typing import List
 import base64
 
 import streamlit as st
@@ -102,26 +101,26 @@ TRANSCRIPTS_DIR = Path("transcripts")
 
 def clean_text(text):
 
-    text = text.replace("\n"," ")
-    text = re.sub(r"\s+"," ",text)
+    text = text.replace("\n", " ")
+    text = re.sub(r"\s+", " ", text)
 
     return text.strip()
 
 
 def load_transcripts():
 
-    docs=[]
+    docs = []
 
-    files=list(TRANSCRIPTS_DIR.glob("*.txt"))
+    files = list(TRANSCRIPTS_DIR.glob("*.txt"))
 
     for f in files:
 
-        text=f.read_text(encoding="utf-8")
+        text = f.read_text(encoding="utf-8")
 
         docs.append(
             Document(
                 page_content=clean_text(text),
-                metadata={"video":f.stem}
+                metadata={"video": f.stem}
             )
         )
 
@@ -135,30 +134,30 @@ def load_transcripts():
 @st.cache_resource
 def build_vector_db():
 
-    docs=load_transcripts()
+    docs = load_transcripts()
 
-    splitter=RecursiveCharacterTextSplitter(
+    splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=200
     )
 
-    chunks=splitter.split_documents(docs)
+    chunks = splitter.split_documents(docs)
 
-    embeddings=OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings()
 
-    db=Chroma.from_documents(
+    db = Chroma.from_documents(
         chunks,
         embeddings
     )
 
-    return db,docs
+    return db, docs
 
 
-vector_db,all_docs = build_vector_db()
+vector_db, all_docs = build_vector_db()
 
 retriever = vector_db.as_retriever(
     search_type="mmr",
-    search_kwargs={"k":8,"fetch_k":20}
+    search_kwargs={"k": 8, "fetch_k": 20}
 )
 
 
@@ -180,7 +179,7 @@ client = OpenAI()
 
 def extract_entity(question):
 
-    prompt=f"""
+    prompt = f"""
 Extract the name of a person mentioned in this question.
 
 Question:
@@ -192,7 +191,7 @@ If none exists return NONE.
 
     r = llm.invoke(prompt).content.strip()
 
-    if r=="NONE":
+    if r == "NONE":
         return None
 
     return r
@@ -227,9 +226,9 @@ def retrieve_docs(question):
 
 def build_context(docs):
 
-    blocks=[]
+    blocks = []
 
-    for i,d in enumerate(docs):
+    for i, d in enumerate(docs):
 
         blocks.append(
 f"""
@@ -254,7 +253,7 @@ def answer_question(question):
 
     history = "\n".join(st.session_state.chat_history)
 
-    prompt=f"""
+    prompt = f"""
 You are a research assistant.
 
 Conversation history:
@@ -307,11 +306,10 @@ def generate_image(question):
 # AUDIO
 # --------------------------------------------------
 
-
 def generate_audio(text):
 
     try:
-python -m stramlit appFinal.py
+
         speech = client.audio.speech.create(
             model="gpt-4o-mini-tts",
             voice="alloy",
@@ -325,29 +323,32 @@ python -m stramlit appFinal.py
         print(e)
         return None
 
+
 # --------------------------------------------------
 # UI
 # --------------------------------------------------
 
-question = st.text_input("Ask a question about women in history")
+try:
 
-if question:
+    question = st.text_input("Ask a question about women in history")
 
-    answer = answer_question(question)
+    if question:
 
-    st.subheader("Answer")
-    st.write(answer)
+        answer = answer_question(question)
 
+        st.subheader("Answer")
+        st.write(answer)
 
-    # AUDIO
-    if st.button("🔊 Read Answer"):
+        if st.button("🔊 Read Answer"):
 
-        audio = generate_audio(answer)
+            audio = generate_audio(answer)
 
-        if audio:
-            st.audio(audio)
-        else:
-            st.warning("Audio generation failed")
+            if audio:
+                st.audio(audio)
+            else:
+                st.warning("Audio generation failed")
 
+except Exception as e:
 
-    
+    st.error("An error occurred")
+    st.write(e)
