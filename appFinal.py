@@ -311,7 +311,7 @@ def generate_image(question):
 def generate_audio(text):
 
     try:
-
+python -m stramlit appFinal.py
         speech = client.audio.speech.create(
             model="gpt-4o-mini-tts",
             voice="alloy",
