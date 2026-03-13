@@ -1,5 +1,4 @@
 .env
 transcripts/
-chroma_db/
 venv/
 venve311/
